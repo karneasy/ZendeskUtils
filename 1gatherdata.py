@@ -7,33 +7,34 @@ from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_API_ENDP
 
 def fetch_and_save_endpoint_data(endpoint, response_name):
     auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
-    headers = {
-        'Content-Type': 'application/json'
-    }
+    headers = {'Content-Type': 'application/json'}
     url = f"{ZENDESK_URL}{endpoint}.json?page[size]=100"
     all_data = []
     total_count = 0
-    batch_count = 0
 
     while url:
         response = requests.get(url, headers=headers, auth=auth)
         if response.status_code == 200:
             data = response.json()
-            batch_data = data[response_name]
-            all_data.extend(batch_data)
-            batch_count += len(batch_data)
-            # Update and display progress
-            if 'count' in data:  # Assuming 'count' is part of the response indicating total records
+            if 'count' in data:
                 total_count = data['count']
-            print(f"Fetched {batch_count}/{total_count} records from {response_name}")
-            has_more = data.get('meta', {}).get('has_more', False)
-            next_url = data.get('links', {}).get('next')
-            url = next_url if has_more else None
+                next_url = data.get('next_page')
+            elif 'meta' in data and 'has_more' in data['meta']:
+                batch_data = data[response_name]
+                all_data.extend(batch_data)
+                batch_count = len(batch_data)
+                total_count = data['meta'].get('total', 0)
+                print(f"Fetched {batch_count}/{total_count} records from {response_name}")
+                next_url = data.get('links', {}).get('next')
+            else:
+                print(f"Unknown pagination type for {response_name}")
+                break
+
+            url = next_url
         elif response.status_code == 429:
-            retry_after = int(response.headers.get('Retry-After', 60))  # Default to 60 seconds if not provided
+            retry_after = int(response.headers.get('Retry-After', 60))
             print(f"Rate limit hit. Waiting for {retry_after} seconds before retrying...")
             time.sleep(retry_after)
-            # No URL update needed; retry the same URL
         else:
             print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
             break
