@@ -12,31 +12,44 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
     all_data = []
     total_count = 0
 
-    while url:
-        response = requests.get(url, headers=headers, auth=auth)
-        if response.status_code == 200:
-            data = response.json()
-            if 'count' in data:
-                total_count = data['count']
-                next_url = data.get('next_page')
-            elif 'meta' in data and 'has_more' in data['meta']:
-                batch_data = data[response_name]
-                all_data.extend(batch_data)
-                batch_count = len(batch_data)
-                total_count = data['meta'].get('total', 0)
-                print(f"Fetched {batch_count}/{total_count} records from {response_name}")
-                next_url = data.get('links', {}).get('next')
-            else:
-                print(f"Unknown pagination type for {response_name}")
-                break
+    response = requests.get(url, headers=headers, auth=auth)
+    if response.status_code != 200:
+        print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
+        return
 
-            url = next_url
-        elif response.status_code == 429:
-            retry_after = int(response.headers.get('Retry-After', 60))
-            print(f"Rate limit hit. Waiting for {retry_after} seconds before retrying...")
-            time.sleep(retry_after)
+    data = response.json()
+    if 'count' in data:
+        total_count = data['count']
+        next_url = data.get('next_page')
+    elif 'meta' in data and 'has_more' in data['meta']:
+        batch_data = data[response_name]
+        all_data.extend(batch_data)
+        total_count = data['meta'].get('total', 0)
+        print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
+        next_url = data.get('links', {}).get('next')
+    else:
+        print(f"Unknown pagination type for {response_name}")
+        return
+
+    while next_url:
+        print(f"Querying URL: {next_url}")
+        response = requests.get(next_url, headers=headers, auth=auth)
+        if response.status_code != 200:
+            print(f"Failed to fetch data from {next_url}. Status code: {response.status_code}")
+            break
+
+        data = response.json()
+        if 'count' in data:
+            total_count = data['count']
+            next_url = data.get('next_page')
+        elif 'meta' in data and 'has_more' in data['meta']:
+            batch_data = data[response_name]
+            all_data.extend(batch_data)
+            total_count = data['meta'].get('total', 0)
+            print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
+            next_url = data.get('links', {}).get('next')
         else:
-            print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
+            print(f"Unknown pagination type for {response_name}")
             break
 
     output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
