@@ -8,7 +8,7 @@ from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_API_ENDP
 def fetch_and_save_endpoint_data(endpoint, response_name):
     auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
     headers = {'Content-Type': 'application/json'}
-    url = f"{ZENDESK_URL}{endpoint}.json?page[size]=100"
+    url = f"{ZENDESK_URL}{endpoint}"
     all_data = []
     total_count = 0
 
