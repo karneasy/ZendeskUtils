@@ -2,39 +2,35 @@ import os
 import json
 from settings import DATA_SAVE_PATH
 
-# Function to search for a specific string in the actions list of each entry
-def search_string_in_actions(entry, search_string):
+def extract_matching_fields(data, search_string):
     matches = []
-    for action in entry.get("actions", []):
-        for value in action.get("value", []):
-            print(f"Checking value: {value}")
-            if search_string in value:
-                matches.append(entry.get("id"))
-                print(f"Match found for entry {entry.get('id')}")
-                break
+    for entry in data:
+        for action in entry.get("actions", []):
+            if isinstance(action.get("value"), list):
+                for value in action.get("value"):
+                    if search_string in value:
+                        match_info = {
+                            "id": entry.get("id"),
+                            "actions": [{"field": action.get("field"), "value": action.get("value")}]
+                        }
+                        matches.append(match_info)
     return matches
 
 def main():
-    # String to search for
     search_string = "Ticket {{ticket.id}} Transferred from Zendesk"
 
-    # Load macros.json file from DATA_SAVE_PATH
     macros_file_path = os.path.join(DATA_SAVE_PATH, "macros.json")
     with open(macros_file_path, "r") as file:
         data = json.load(file)
 
-    # Find matches
-    matching_ids = []
-    for entry in data:
-        matching_ids.extend(search_string_in_actions(entry, search_string))
+    matching_records = extract_matching_fields(data, search_string)
 
-    # Create JSON file with matching ids
-    output_data = {"matching_ids": matching_ids}
-    matching_ids_file_path = os.path.join(DATA_SAVE_PATH, "matching_ids.json")
-    with open(matching_ids_file_path, "w") as outfile:
+    output_data = {"matching_records": matching_records}
+    matching_records_file_path = os.path.join(DATA_SAVE_PATH, "matching_records.json")
+    with open(matching_records_file_path, "w") as outfile:
         json.dump(output_data, outfile, indent=4)
 
-    print("Matching IDs saved to matching_ids.json")
+    print("Matching records saved to matching_records.json")
 
 if __name__ == "__main__":
     main()
