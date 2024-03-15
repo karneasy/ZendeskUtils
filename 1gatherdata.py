@@ -31,7 +31,7 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
         print(f"Unknown pagination type for {response_name}")
         return
 
-    while next_url:
+    while next_url is not None:
         print(f"Querying URL: {next_url}")
         response = requests.get(next_url, headers=headers, auth=auth)
         if response.status_code != 200:
