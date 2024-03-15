@@ -1,0 +1,28 @@
+import json
+
+# Function to search for a specific string in the actions list of each entry
+def search_string_in_actions(entry, search_string):
+    matches = []
+    for action in entry.get("actions", []):
+        if isinstance(action.get("value"), list) and any(search_string in value for value in action.get("value")):
+            matches.append(entry.get("id"))
+    return matches
+
+# Load macros.json file
+with open("macros.json", "r") as file:
+    data = json.load(file)
+
+# String to search for
+search_string = "ticket {{ticket.id}} transferred from Zendesk"
+
+# Find matches
+matching_ids = []
+for entry in data:
+    matching_ids.extend(search_string_in_actions(entry, search_string))
+
+# Create JSON file with matching ids
+output_data = {"matching_ids": matching_ids}
+with open("matching_ids.json", "w") as outfile:
+    json.dump(output_data, outfile, indent=4)
+
+print("Matching IDs saved to matching_ids.json")
