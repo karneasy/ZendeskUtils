@@ -42,6 +42,8 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
         if 'count' in data:
             total_count = data['count']
             next_url = data.get('next_page')
+            all_data.extend(data[response_name])  # Append data to all_data
+            print(f"Fetched {len(data[response_name])}/{total_count} records from {response_name}")
         elif 'meta' in data and 'has_more' in data['meta']:
             batch_data = data[response_name]
             all_data.extend(batch_data)
@@ -52,7 +54,6 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
             print(f"Unknown pagination type for {response_name}")
             break
 
-    print(f"Final data collected: {all_data}")
     output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
     with open(output_path, 'w') as json_file:
         json.dump(all_data, json_file)
