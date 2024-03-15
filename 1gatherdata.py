@@ -20,10 +20,10 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
     data = response.json()
     if 'count' in data:
         total_count = data['count']
-        all_data.extend(data[response_name])  # Add initial data to all_data
+        all_data.extend(data[response_name]) if response_name in data else None
         next_url = data.get('next_page')
     elif 'meta' in data and 'has_more' in data['meta']:
-        batch_data = data[response_name]
+        batch_data = data[response_name] if response_name in data else []
         all_data.extend(batch_data)
         total_count = data['meta'].get('total', 0)
         print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
@@ -43,10 +43,10 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
         if 'count' in data:
             total_count = data['count']
             next_url = data.get('next_page')
-            all_data.extend(data[response_name])  # Append data to all_data
+            all_data.extend(data[response_name]) if response_name in data else None
             print(f"Fetched {len(data[response_name])}/{total_count} records from {response_name}")
         elif 'meta' in data and 'has_more' in data['meta']:
-            batch_data = data[response_name]
+            batch_data = data[response_name] if response_name in data else []
             all_data.extend(batch_data)
             total_count = data['meta'].get('total', 0)
             print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
