@@ -52,6 +52,7 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
             print(f"Unknown pagination type for {response_name}")
             break
 
+    print(f"Final data collected: {all_data}")
     output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
     with open(output_path, 'w') as json_file:
         json.dump(all_data, json_file)
