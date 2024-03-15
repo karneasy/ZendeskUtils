@@ -20,6 +20,7 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
     data = response.json()
     if 'count' in data:
         total_count = data['count']
+        all_data.extend(data[response_name])  # Add initial data to all_data
         next_url = data.get('next_page')
     elif 'meta' in data and 'has_more' in data['meta']:
         batch_data = data[response_name]
