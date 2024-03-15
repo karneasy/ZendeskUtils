@@ -1,7 +1,6 @@
 import os
 import json
-
-DATA_SAVE_PATH = "path_to_your_data_save_directory"  # Update this with your actual DATA_SAVE_PATH
+from settings import DATA_SAVE_PATH
 
 # Function to search for a specific string in the actions list of each entry
 def search_string_in_actions(entry, search_string):
@@ -11,23 +10,27 @@ def search_string_in_actions(entry, search_string):
             matches.append(entry.get("id"))
     return matches
 
-# Load macros.json file from DATA_SAVE_PATH
-macros_file_path = os.path.join(DATA_SAVE_PATH, "macros.json")
-with open(macros_file_path, "r") as file:
-    data = json.load(file)
+def main():
+    # String to search for
+    search_string = "Ticket {{ticket.id}} Transferred from Zendesk"
 
-# String to search for
-search_string = "ticket {{ticket.id}} transferred from Zendesk"
+    # Load macros.json file from DATA_SAVE_PATH
+    macros_file_path = os.path.join(DATA_SAVE_PATH, "macros.json")
+    with open(macros_file_path, "r") as file:
+        data = json.load(file)
 
-# Find matches
-matching_ids = []
-for entry in data:
-    matching_ids.extend(search_string_in_actions(entry, search_string))
+    # Find matches
+    matching_ids = []
+    for entry in data:
+        matching_ids.extend(search_string_in_actions(entry, search_string))
 
-# Create JSON file with matching ids
-output_data = {"matching_ids": matching_ids}
-matching_ids_file_path = os.path.join(DATA_SAVE_PATH, "matching_ids.json")
-with open(matching_ids_file_path, "w") as outfile:
-    json.dump(output_data, outfile, indent=4)
+    # Create JSON file with matching ids
+    output_data = {"matching_ids": matching_ids}
+    matching_ids_file_path = os.path.join(DATA_SAVE_PATH, "matching_ids.json")
+    with open(matching_ids_file_path, "w") as outfile:
+        json.dump(output_data, outfile, indent=4)
 
-print("Matching IDs saved to matching_ids.json")
+    print("Matching IDs saved to matching_ids.json")
+
+if __name__ == "__main__":
+    main()
