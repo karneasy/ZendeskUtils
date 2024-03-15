@@ -6,8 +6,12 @@ from settings import DATA_SAVE_PATH
 def search_string_in_actions(entry, search_string):
     matches = []
     for action in entry.get("actions", []):
-        if isinstance(action.get("value"), list) and any(search_string in value for value in action.get("value")):
-            matches.append(entry.get("id"))
+        for value in action.get("value", []):
+            print(f"Checking value: {value}")
+            if search_string in value:
+                matches.append(entry.get("id"))
+                print(f"Match found for entry {entry.get('id')}")
+                break
     return matches
 
 def main():
