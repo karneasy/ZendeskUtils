@@ -33,7 +33,7 @@ def download_sections():
 
 def build_section_hierarchy(section_id, sections):
     hierarchy = []
-    while section_id:
+    while section_id is not None:
         section = next((section for section in sections if section['id'] == section_id), None)
         if section:
             hierarchy.insert(0, section)
@@ -51,9 +51,14 @@ def generate_csv():
     with open(os.path.join(DATA_SAVE_PATH, 'sections.json')) as json_file:
         sections = json.load(json_file)
     
+    # Determine maximum depth of section hierarchy
+    max_depth = max(len(build_section_hierarchy(article['section_id'], sections)) for article in articles)
+    
     with open(os.path.join(DATA_SAVE_PATH, 'output.csv'), mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(['Category Name'] + [f'Section {i+1}' for i in range(10)] + ['Article Title'])
+        # Create header row dynamically based on max depth
+        header_row = ['Category Name'] + [f'Section {i+1}' for i in range(max_depth)] + ['Article Title']
+        writer.writerow(header_row)
 
         for article in articles:
             article_section_id = article['section_id']
@@ -64,6 +69,8 @@ def generate_csv():
                 if article_category:
                     row_data = [article_category['name']]
                     row_data += [section['name'] if section else 'null' for section in article_sections[:-1]]
+                    # Pad row data with "null" to match max depth
+                    row_data += ['null'] * (max_depth - len(article_sections[:-1]))
                     row_data.append(article['title'])
                     writer.writerow(row_data)
     print("CSV file generated successfully.")
