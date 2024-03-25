@@ -10,7 +10,7 @@ zenpy_client = Zenpy(subdomain=ZENDESK_URL, email=ZENDESK_EMAIL, token=ZENDESK_T
 def download_articles():
     print("Downloading articles...")
     articles = list(zenpy_client.help_center.articles())
-    article_data = [{'id': article.id, 'title': article.title} for article in articles]
+    article_data = [{'id': article.id, 'title': article.title, 'section_id': article.section_id} for article in articles]
     with open(os.path.join(DATA_SAVE_PATH, 'articles.json'), 'w') as json_file:
         json.dump(article_data, json_file)
     print("Articles downloaded and saved to 'articles.json'.")
@@ -31,6 +31,17 @@ def download_sections():
         json.dump(section_data, json_file)
     print("Sections downloaded and saved to 'sections.json'.")
 
+def build_section_hierarchy(section_id, sections):
+    hierarchy = []
+    while section_id:
+        section = next((section for section in sections if section['id'] == section_id), None)
+        if section:
+            hierarchy.insert(0, section)
+            section_id = section['parent_section_id']
+        else:
+            section_id = None
+    return hierarchy
+
 def generate_csv():
     print("Generating CSV file...")
     with open(os.path.join(DATA_SAVE_PATH, 'articles.json')) as json_file:
@@ -42,16 +53,19 @@ def generate_csv():
     
     with open(os.path.join(DATA_SAVE_PATH, 'output.csv'), mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(['Category Name', 'Section Name', 'Article Title'])
+        writer.writerow(['Category Name'] + [f'Section {i+1}' for i in range(10)] + ['Article Title'])
 
         for article in articles:
-            article_section_id = next((section['id'] for section in sections if section['id'] == article['section_id']), None)
+            article_section_id = article['section_id']
             if article_section_id:
-                article_section = next((section for section in sections if section['id'] == article_section_id), None)
-                article_category_id = next((category['id'] for category in categories if category['id'] == article_section['category_id']), None)
-                if article_category_id:
-                    article_category = next((category for category in categories if category['id'] == article_category_id), None)
-                    writer.writerow([article_category['name'], article_section['name'], article['title']])
+                article_sections = build_section_hierarchy(article_section_id, sections)
+                article_category_id = article_sections[-1]['category_id']
+                article_category = next((category for category in categories if category['id'] == article_category_id), None)
+                if article_category:
+                    row_data = [article_category['name']]
+                    row_data += [section['name'] for section in article_sections]
+                    row_data += [article['title']]
+                    writer.writerow(row_data)
     print("CSV file generated successfully.")
 
 # Download data
