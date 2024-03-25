@@ -1,5 +1,6 @@
 import json
 import csv
+from settings import DATA_SAVE_PATH
 
 def load_json(file_path):
     with open(file_path, 'r') as file:
@@ -49,7 +50,7 @@ def main():
     parent_sections = find_parent_sections(categories_data['sections'])
     process_articles(articles_data['articles'], categories_data['sections'])
     
-    write_to_csv(parent_sections, articles_data['articles'], 'output.csv')
+    write_to_csv(parent_sections, articles_data['articles'], DATA_SAVE_PATH)
 
 if __name__ == "__main__":
     main()
