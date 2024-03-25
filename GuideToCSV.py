@@ -31,6 +31,7 @@ with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
     # Loop through articles
     for article in articles:
         hierarchy = get_section_hierarchy(article)
-        row_data = [h.category().name if h.parent_section_id is None else h.name for h in hierarchy]
+        category_name = zenpy_client.help_center.category(id=hierarchy[-1].category_id).name
+        row_data = [category_name if h.parent_section_id is None else h.name for h in hierarchy]
         row_data += [article.title, article.body]
         writer.writerow(row_data)
