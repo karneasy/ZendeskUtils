@@ -25,21 +25,17 @@ def get_section_hierarchy(section_id):
 csv_file_path = os.path.join(DATA_SAVE_PATH, 'output.csv')
 with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
     writer = csv.writer(csv_file)
-    writer.writerow(['Category Name'] + [f'Section Level {i+1}' for i in range(10)] + ['Article Title', 'Article Body'])
+    writer.writerow(['Category Name', 'Section Name', 'Article Title', 'Article Body'])
 
     # Get all sections
     sections = list(zenpy_client.help_center.sections())
 
-#iterate through sections, any section with no parent_section_id is a top level section, then create columns for each level beneath, based on parent_section_id
+    # Loop through top-level sections
     for section in sections:
         if section.parent_section_id is None:
-            section_hierarchy = get_section_hierarchy(section.id)
-            for i in range(10):
-                if not section_hierarchy[i]:
-                    break
-                writer.writerow([section.category.name] + [section.name for section in section_hierarchy[i]] + ['', ''])
-                for article in zenpy_client.help_center.articles(section_id=section.id):
-                    writer.writerow([''] * (i + 2) + [article.title, article.body])
-        else:
-            continue
-print(f"Data saved to {csv_file_path}")
+            hierarchy = get_section_hierarchy(section.id)
+            articles = zenpy_client.help_center.articles(section=section)
+            for article in articles:
+                for level in hierarchy:
+                    for s in level:
+                        writer.writerow([section.category().name, s.name, article.title, article.body])
