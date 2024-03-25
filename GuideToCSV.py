@@ -1,61 +1,45 @@
 import os
-import json
 import csv
-from settings import DATA_SAVE_PATH
+from zenpy import Zenpy
+from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, DATA_SAVE_PATH
 
-def load_json(file_path):
-    with open(file_path, 'r') as file:
-        return json.load(file)
+# Set up Zenpy with your Zendesk credentials
+zenpy_client = Zenpy(subdomain=ZENDESK_URL, email=ZENDESK_EMAIL, token=ZENDESK_TOKEN)
 
-def find_parent_sections(sections):
-    parent_sections = {}
+# Function to recursively build section hierarchy
+def build_section_hierarchy(section_id, level, hierarchy):
+    children = [section for section in sections if section.parent_section_id == section_id]
+    if not children:
+        return
+    for child in children:
+        hierarchy[level].append(child)
+        build_section_hierarchy(child.id, level + 1, hierarchy)
+
+# Function to get section hierarchy
+def get_section_hierarchy(section_id):
+    hierarchy = [[] for _ in range(10)]  # Assuming maximum 10 levels
+    build_section_hierarchy(section_id, 0, hierarchy)
+    return hierarchy
+
+# Write data to CSV file
+csv_file_path = os.path.join(DATA_SAVE_PATH, 'output.csv')
+with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
+    writer = csv.writer(csv_file)
+    writer.writerow(['Category Name'] + [f'Section Level {i+1}' for i in range(10)] + ['Article Title', 'Article Body'])
+
+    # Get all sections
+    sections = list(zenpy_client.help_center.sections())
+
+#iterate through sections, any section with no parent_section_id is a top level section, then create columns for each level beneath, based on parent_section_id
     for section in sections:
-        parent_id = section.get('parent_section_id')
-        if parent_id is None:
-            parent_sections[section['id']] = {'name': section['name'], 'articles': []}
+        if section.parent_section_id is None:
+            section_hierarchy = get_section_hierarchy(section.id)
+            for i in range(10):
+                if not section_hierarchy[i]:
+                    break
+                writer.writerow([section.category.name] + [section.name for section in section_hierarchy[i]] + ['', ''])
+                for article in zenpy_client.help_center.articles(section_id=section.id):
+                    writer.writerow([''] * (i + 2) + [article.title, article.body])
         else:
-            if parent_id not in parent_sections:
-                parent_sections[parent_id] = {'name': '', 'articles': []}
-            parent_sections[parent_id]['articles'].append(section)
-    return parent_sections
-
-def process_articles(articles, sections):
-    section_mapping = {section['id']: section['name'] for section in sections}
-    for article in articles:
-        section_id = article['section_id']
-        if section_id in section_mapping:
-            article['section_name'] = section_mapping[section_id]
-        else:
-            article['section_name'] = 'Unknown'
-
-def write_to_csv(parent_sections, articles, output_file):
-    with open(output_file, 'w', newline='') as csvfile:
-        fieldnames = ['Article ID', 'Article Title'] + list(parent_sections.values())
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        
-        for article in articles:
-            row = {'Article ID': article['id'], 'Article Title': article['title']}
-            section_name = article['section_name']
-            for parent_id, parent_section in parent_sections.items():
-                if section_name == parent_section['name']:
-                    row[section_name] = 'X'
-                else:
-                    row[parent_section['name']] = ''
-            writer.writerow(row)
-
-def main():
-    categories_file = os.path.join(DATA_SAVE_PATH, 'categories.json')
-    articles_file = os.path.join(DATA_SAVE_PATH, 'articles.json')
-    
-    categories_data = load_json(categories_file)
-    articles_data = load_json(articles_file)
-    
-    parent_sections = find_parent_sections(categories_data['sections'])
-    process_articles(articles_data['articles'], categories_data['sections'])
-    
-    output_csv_file = os.path.join(DATA_SAVE_PATH, 'output.csv')
-    write_to_csv(parent_sections, articles_data['articles'], output_csv_file)
-
-if __name__ == "__main__":
-    main()
+            continue
+print(f"Data saved to {csv_file_path}")
