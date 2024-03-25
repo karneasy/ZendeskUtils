@@ -7,35 +7,30 @@ from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, DATA_SAVE_PATH
 zenpy_client = Zenpy(subdomain=ZENDESK_URL, email=ZENDESK_EMAIL, token=ZENDESK_TOKEN)
 
 # Function to recursively build section hierarchy
-def build_section_hierarchy(section_id, level, hierarchy):
-    children = [section for section in sections if section.parent_section_id == section_id]
-    if not children:
-        return
-    for child in children:
-        hierarchy[level].append(child)
-        build_section_hierarchy(child.id, level + 1, hierarchy)
+def build_section_hierarchy(section_id, hierarchy):
+    section = zenpy_client.help_center.section(id=section_id)
+    if section.parent_section_id:
+        build_section_hierarchy(section.parent_section_id, hierarchy)
+    hierarchy.append(section)
 
 # Function to get section hierarchy
-def get_section_hierarchy(section_id):
-    hierarchy = [[] for _ in range(10)]  # Assuming maximum 10 levels
-    build_section_hierarchy(section_id, 0, hierarchy)
+def get_section_hierarchy(article):
+    hierarchy = []
+    build_section_hierarchy(article.section_id, hierarchy)
     return hierarchy
 
 # Write data to CSV file
 csv_file_path = os.path.join(DATA_SAVE_PATH, 'output.csv')
 with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
     writer = csv.writer(csv_file)
-    writer.writerow(['Category Name', 'Section Name', 'Article Title', 'Article Body'])
+    writer.writerow(['Category Name'] + [f'Section {i+1}' for i in range(10)] + ['Article Title', 'Article Body'])
 
-    # Get all sections
-    sections = list(zenpy_client.help_center.sections())
+    # Get all articles
+    articles = list(zenpy_client.help_center.articles())
 
-    # Loop through top-level sections
-    for section in sections:
-        if section.parent_section_id is None:
-            hierarchy = get_section_hierarchy(section.id)
-            articles = zenpy_client.help_center.articles(section=section)
-            for article in articles:
-                for level in hierarchy:
-                    for s in level:
-                        writer.writerow([section.category().name, s.name, article.title, article.body])
+    # Loop through articles
+    for article in articles:
+        hierarchy = get_section_hierarchy(article)
+        row_data = [h.category().name if h.parent_section_id is None else h.name for h in hierarchy]
+        row_data += [article.title, article.body]
+        writer.writerow(row_data)
