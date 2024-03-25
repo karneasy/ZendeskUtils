@@ -63,7 +63,7 @@ def generate_csv():
                 article_category = next((category for category in categories if category['id'] == article_category_id), None)
                 if article_category:
                     row_data = [article_category['name']]
-                    row_data += [section['name'] if section else '' for section in article_sections]
+                    row_data += [section['name'] if section else '' for section in article_sections[:-1]]
                     row_data += [article['title']]
                     writer.writerow(row_data)
     print("CSV file generated successfully.")
