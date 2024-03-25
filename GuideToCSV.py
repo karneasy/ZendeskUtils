@@ -59,12 +59,15 @@ def generate_csv():
             article_section_id = article['section_id']
             if article_section_id:
                 article_sections = build_section_hierarchy(article_section_id, sections)
+                last_section_id = article_sections[-1]['id']
                 article_category_id = article_sections[-1]['category_id']
                 article_category = next((category for category in categories if category['id'] == article_category_id), None)
                 if article_category:
                     row_data = [article_category['name']]
                     row_data += [section['name'] if section else '' for section in article_sections[:-1]]
-                    row_data += [article['title']]
+                    article_section_name = next((section['name'] for section in sections if section['id'] == last_section_id), '')
+                    row_data.append(article_section_name)
+                    row_data.append(article['title'])
                     writer.writerow(row_data)
     print("CSV file generated successfully.")
 
