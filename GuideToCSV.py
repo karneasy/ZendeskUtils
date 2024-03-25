@@ -71,9 +71,9 @@ def generate_csv():
             article_category = next((category for category in categories if category['id'] == article_category_id), None)
             if article_category:
                 row_data = [article_category['name']]
-                for section in article_sections:
-                    if section:
-                        row_data.append(section['name'])
+                for i in range(max_depth):
+                    if i < len(article_sections):
+                        row_data.append(article_sections[i]['name'])
                     else:
                         row_data.append('null')
                 row_data.append(article['title'])
