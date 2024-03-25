@@ -1,3 +1,4 @@
+import os
 import json
 import csv
 from settings import DATA_SAVE_PATH
@@ -44,13 +45,17 @@ def write_to_csv(parent_sections, articles, output_file):
             writer.writerow(row)
 
 def main():
-    categories_data = load_json('categories.json')
-    articles_data = load_json('articles.json')
+    categories_file = os.path.join(DATA_SAVE_PATH, 'categories.json')
+    articles_file = os.path.join(DATA_SAVE_PATH, 'articles.json')
+    
+    categories_data = load_json(categories_file)
+    articles_data = load_json(articles_file)
     
     parent_sections = find_parent_sections(categories_data['sections'])
     process_articles(articles_data['articles'], categories_data['sections'])
     
-    write_to_csv(parent_sections, articles_data['articles'], DATA_SAVE_PATH)
+    output_csv_file = os.path.join(DATA_SAVE_PATH, 'output.csv')
+    write_to_csv(parent_sections, articles_data['articles'], output_csv_file)
 
 if __name__ == "__main__":
     main()
