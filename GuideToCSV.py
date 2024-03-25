@@ -26,7 +26,7 @@ def download_categories():
 def download_sections():
     print("Downloading sections...")
     sections = list(zenpy_client.help_center.sections())
-    section_data = [{'id': section.id, 'name': section.name, 'parent_section_id': section.parent_section_id} for section in sections]
+    section_data = [{'id': section.id, 'name': section.name, 'parent_section_id': section.parent_section_id, 'category_id': section.category_id} for section in sections]
     with open(os.path.join(DATA_SAVE_PATH, 'sections.json'), 'w') as json_file:
         json.dump(section_data, json_file)
     print("Sections downloaded and saved to 'sections.json'.")
@@ -62,6 +62,7 @@ def generate_csv():
         for i in range(max_depth):
             header_row.append(f'Section {i+1}')
         header_row.append('Article Title')
+        header_row.append('Article_ID')
         writer.writerow(header_row)
 
         # Write data rows
@@ -77,6 +78,7 @@ def generate_csv():
                     else:
                         row_data.append('null')
                 row_data.append(article['title'])
+                row_data.append(article['id'])
                 writer.writerow(row_data)
     print("CSV file generated successfully.")
 
