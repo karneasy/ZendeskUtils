@@ -51,28 +51,33 @@ def generate_csv():
     with open(os.path.join(DATA_SAVE_PATH, 'sections.json')) as json_file:
         sections = json.load(json_file)
     
-    # Determine maximum depth of section hierarchy
-    max_depth = max(len(build_section_hierarchy(article['section_id'], sections)) for article in articles)
-    
     with open(os.path.join(DATA_SAVE_PATH, 'output.csv'), mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        # Create header row dynamically based on max depth
-        header_row = ['Category Name'] + [f'Section {i+1}' for i in range(max_depth)] + ['Article Title']
+
+        # Determine the maximum depth of the hierarchy
+        max_depth = max(len(build_section_hierarchy(article['section_id'], sections)) for article in articles)
+
+        # Write header row
+        header_row = ['Category Name']
+        for i in range(max_depth):
+            header_row.append(f'Section {i+1}')
+        header_row.append('Article Title')
         writer.writerow(header_row)
 
+        # Write data rows
         for article in articles:
-            article_section_id = article['section_id']
-            if article_section_id:
-                article_sections = build_section_hierarchy(article_section_id, sections)
-                article_category_id = article_sections[-1]['category_id']
-                article_category = next((category for category in categories if category['id'] == article_category_id), None)
-                if article_category:
-                    row_data = [article_category['name']]
-                    row_data += [section['name'] if section else 'null' for section in article_sections[:-1]]
-                    # Pad row data with "null" to match max depth
-                    row_data += ['null'] * (max_depth - len(article_sections[:-1]))
-                    row_data.append(article['title'])
-                    writer.writerow(row_data)
+            article_sections = build_section_hierarchy(article['section_id'], sections)
+            article_category_id = article_sections[-1]['category_id']
+            article_category = next((category for category in categories if category['id'] == article_category_id), None)
+            if article_category:
+                row_data = [article_category['name']]
+                for section in article_sections:
+                    if section:
+                        row_data.append(section['name'])
+                    else:
+                        row_data.append('null')
+                row_data.append(article['title'])
+                writer.writerow(row_data)
     print("CSV file generated successfully.")
 
 # Download data
