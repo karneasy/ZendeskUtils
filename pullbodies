@@ -1,0 +1,34 @@
+import os
+import json
+import csv
+from settings import DATA_SAVE_PATH
+
+def pull_comment_values():
+    # Load the macros.json file
+    macros_path = os.path.join(DATA_SAVE_PATH, 'macros.json')
+    with open(macros_path, 'r', encoding='utf-8') as json_file:
+        macros = json.load(json_file)  # Directly loads a list of macros
+
+    # Open (or create) the CSV file where the results will be saved
+    csv_path = os.path.join(DATA_SAVE_PATH, 'bodies.csv')
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(['Macro ID', 'Macro Title', 'Comment Value'])
+
+        # Iterate through each macro in the list
+        for macro in macros:
+            # Initialize a variable to hold the comment_value if found
+            comment_value = None
+            for action in macro['actions']:
+                if action['field'] == 'comment_value':
+                    comment_value = action['value']
+                    break  # Stop searching once comment_value is found
+
+            # Write the macro information and comment_value to the CSV, if comment_value was found
+            if comment_value is not None:
+                writer.writerow([macro['id'], macro['title'], comment_value])
+
+    print("Output generated and saved to 'bodies.csv'.")
+
+# Execute the function
+pull_comment_values()
