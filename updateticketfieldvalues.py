@@ -2,7 +2,7 @@ import csv
 import json
 from zenpy import Zenpy
 from zenpy.lib.api_objects import CustomFieldOption
-import settings
+from settings import ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_URL, DATA_FETCH_PATH, DATA_SAVE_PATH
 
 # Function to read CSV and return a list of JSON objects
 def read_csv_and_generate_json(csv_path):
@@ -26,9 +26,9 @@ def read_csv_and_generate_json(csv_path):
 def process_json_objects_with_zenpy(json_objects):
     # Setup Zenpy client (fill in your actual credentials)
     creds = {
-        'email': 'your_email@example.com',
-        'token': 'your_token',
-        'subdomain': 'your_subdomain'
+        'email': ZENDESK_EMAIL,
+        'token': ZENDESK_TOKEN,
+        'subdomain': ZENDESK_URL
     }
     zenpy_client = Zenpy(**creds)
 
