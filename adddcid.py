@@ -46,3 +46,25 @@ if __name__ == "__main__":
     add_placeholders_to_csv(dc_items, csv_file_path, output_csv_path)
 
     print("Completed adding placeholders to the CSV.")
+
+
+{
+  "macro": {
+    "actions": [
+      {
+        "field": "status",
+        "value": "solved"
+      },
+      {
+"field": "side_conversation",
+"value": [
+"dc_placeholder_title",
+"dc_placeholder_message",
+"",
+"text/html"
+]
+}
+    ],
+    "title": "macro_title"
+  }
+}
