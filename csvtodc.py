@@ -1,17 +1,17 @@
 import csv
 import requests
 import os
-from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, DATA_SAVE_PATH
+from requests.auth import HTTPBasicAuth
+from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, DATA_FETCH_PATH
+
+auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
+headers = {'Content-Type': 'application/json'}
+url = f'https://{ZENDESK_URL}.zendesk.com/api/v2/dynamic_content/items.json'
 
 def create_dynamic_content(csv_file_path):
     """
     Create dynamic content items and variants for specific locales via Zendesk API.
     """
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {ZENDESK_TOKEN}'
-    }
-
     with open(csv_file_path, 'r', encoding='utf-8') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
@@ -30,9 +30,7 @@ def create_dynamic_content(csv_file_path):
                     ]
                 }
             }
-
-            response = requests.post(f'https://{ZENDESK_URL}/api/v2/dynamic_content/items.json',
-                                     json=data, headers=headers)
+            response=requests.get(url, headers=headers, auth=auth)
 
             if response.status_code == 201:
                 print(f"Dynamic content '{title}' created successfully.")
@@ -40,5 +38,5 @@ def create_dynamic_content(csv_file_path):
                 print(f"Failed to create dynamic content for '{title}'. Error: {response.text}")
 
 if __name__ == "__main__":
-    csv_file_path = os.path.join(DATA_SAVE_PATH, 'dynamic_content.csv')
+    csv_file_path = os.path.join(DATA_FETCH_PATH, 'dynamic_content.csv')
     create_dynamic_content(csv_file_path)
