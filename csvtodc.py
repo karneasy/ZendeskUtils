@@ -24,13 +24,16 @@ def create_dynamic_content(csv_file_path):
                     "name": title,
                     "default_locale_id": 1,
                     "variants": [
-                        {"locale_id": 1, "content": body},    # Default locale variant
-                        {"locale_id": 10, "content": body},   # Additional variant
-                        {"locale_id": 1176, "content": body}  # Additional variant
+                        {"locale_id": 1, "default": True, "content": body},    # Default locale variant
+                        {"locale_id": 10, "default": False, "content": body},   # Additional variant
+                        {"locale_id": 1176, "default": False, "content": body}  # Additional variant
                     ]
                 }
             }
-            response=requests.get(url, headers=headers, auth=auth)
+
+            print('data',data)
+            print('ready to send')
+            response=requests.post(url, headers=headers, auth=auth)
 
             if response.status_code == 201:
                 print(f"Dynamic content '{title}' created successfully.")
@@ -40,3 +43,10 @@ def create_dynamic_content(csv_file_path):
 if __name__ == "__main__":
     csv_file_path = os.path.join(DATA_FETCH_PATH, 'dynamic_content.csv')
     create_dynamic_content(csv_file_path)
+
+
+
+
+/////////
+
+{'item': {'name': 'macro_Complaints_External_Update_1_Title', 'default_locale_id': 1, 'variants': [{'locale_id': 1, 'default': True, 'content': 'Re: Complaint {{ticket.id}} - {{ticket.title}}'}, {'locale_id': 10, 'default': False, 'content': 'Re: Complaint {{ticket.id}} - {{ticket.title}}'}, {'locale_id': 1176, 'default': False, 'content': 'Re: Complaint {{ticket.id}} - {{ticket.title}}'}]}}
