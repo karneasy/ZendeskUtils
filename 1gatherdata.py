@@ -4,14 +4,21 @@ import json
 from requests.auth import HTTPBasicAuth
 from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_API_ENDPOINTS, DATA_SAVE_PATH
 
-def fetch_and_save_endpoint_data(endpoint, response_name):
+def fetch_and_save_endpoint_data(endpoint_config):
     auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
     headers = {'Content-Type': 'application/json'}
-    url = f"https://{ZENDESK_URL}.zendesk.com{endpoint}"
-    all_data = []
-    params = {"page[size]": 100}  # Adjust page size as needed
+    response_name = endpoint_config["response_name"]
+    pagination = endpoint_config["pagination"]
 
-    while url:
+    all_data = []
+    url = f"https://{ZENDESK_URL}.zendesk.com{endpoint}"
+    params = {}
+    
+    if pagination["type"] == "page_number":
+        params[pagination["size_param"]] = pagination["size"]
+        page = 1
+
+    while True:
         print(f"Querying URL: {url}")
         response = requests.get(url, headers=headers, auth=auth, params=params)
         if response.status_code != 200:
@@ -21,9 +28,18 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
         data = response.json()
         batch_data = data.get(response_name, [])
         all_data.extend(batch_data)
-        next_url = data.get('links', {}).get('next')  # Adjust based on the actual API response format for cursor links
-        print(f"Fetched {len(batch_data)} records from {response_name}")
-        url = next_url
+
+        if pagination["type"] == "cursor":
+            if not data.get(pagination["meta_key"], {}).get(pagination["has_more"], False):
+                break
+            params[pagination["param_name"]] = data[pagination["meta_key"]][pagination["cursor_key"]]
+        elif pagination["type"] == "page_number":
+            if not batch_data:
+                break
+            page += 1
+            params[pagination["param_name"]] = page
+        else:
+            break  # Unknown pagination type
 
     output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
     with open(output_path, 'w') as json_file:
@@ -33,5 +49,5 @@ def fetch_and_save_endpoint_data(endpoint, response_name):
 if not os.path.exists(DATA_SAVE_PATH):
     os.makedirs(DATA_SAVE_PATH)
 
-for endpoint, response_name in ZENDESK_API_ENDPOINTS.items():
-    fetch_and_save_endpoint_data(endpoint, response_name)
+for endpoint, config in ZENDESK_API_ENDPOINTS.items():
+    fetch_and_save_endpoint_data(config)
