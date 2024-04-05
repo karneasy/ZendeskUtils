@@ -1,59 +1,29 @@
 import os
 import requests
 import json
-import time
 from requests.auth import HTTPBasicAuth
 from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_API_ENDPOINTS, DATA_SAVE_PATH
 
 def fetch_and_save_endpoint_data(endpoint, response_name):
     auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
     headers = {'Content-Type': 'application/json'}
-    url = f"{ZENDESK_URL}{endpoint}"
+    url = f"https://{ZENDESK_URL}.zendesk.com{endpoint}"
     all_data = []
-    total_count = 0
+    params = {"page[size]": 100}  # Adjust page size as needed
 
-    response = requests.get(url, headers=headers, auth=auth)
-    if response.status_code != 200:
-        print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
-        return
-
-    data = response.json()
-    if 'count' in data:
-        total_count = data['count']
-        all_data.extend(data[response_name]) if response_name in data else None
-        next_url = data.get('next_page')
-    elif 'meta' in data and 'has_more' in data['meta']:
-        batch_data = data[response_name] if response_name in data else []
-        all_data.extend(batch_data)
-        total_count = data['meta'].get('total', 0)
-        print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
-        next_url = data.get('links', {}).get('next')
-    else:
-        print(f"Unknown pagination type for {response_name}")
-        return
-
-    while next_url is not None:
-        print(f"Querying URL: {next_url}")
-        response = requests.get(next_url, headers=headers, auth=auth)
+    while url:
+        print(f"Querying URL: {url}")
+        response = requests.get(url, headers=headers, auth=auth, params=params)
         if response.status_code != 200:
-            print(f"Failed to fetch data from {next_url}. Status code: {response.status_code}")
+            print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
             break
 
         data = response.json()
-        if 'count' in data:
-            total_count = data['count']
-            next_url = data.get('next_page')
-            all_data.extend(data[response_name]) if response_name in data else None
-            print(f"Fetched {len(data[response_name])}/{total_count} records from {response_name}")
-        elif 'meta' in data and 'has_more' in data['meta']:
-            batch_data = data[response_name] if response_name in data else []
-            all_data.extend(batch_data)
-            total_count = data['meta'].get('total', 0)
-            print(f"Fetched {len(batch_data)}/{total_count} records from {response_name}")
-            next_url = data.get('links', {}).get('next')
-        else:
-            print(f"Unknown pagination type for {response_name}")
-            break
+        batch_data = data.get(response_name, [])
+        all_data.extend(batch_data)
+        next_url = data.get('links', {}).get('next')  # Adjust based on the actual API response format for cursor links
+        print(f"Fetched {len(batch_data)} records from {response_name}")
+        url = next_url
 
     output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
     with open(output_path, 'w') as json_file:
