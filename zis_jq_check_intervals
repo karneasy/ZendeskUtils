@@ -2,3 +2,4 @@
 
 .model.created_at | strptime("%Y-%m-%dT%H:%M:%SZ") | .[6] = (. - mktime) / 86400 % 7 | mktime | . / 60
 
+.fullTicket.ticket.created_at | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime | . + (4*3600)
