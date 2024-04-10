@@ -1,5 +1,2 @@
-".model.created_at_gmt_4 as $udt | [(.schedule.intervals[] | .start_time <= ($udq % 86400 / 60) and ($udq % 86400 / 60) <= .end_time)] | any"
+.fullTicket.ticket.created_at | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime | . + (4*3600) | . - (. % 86400) - (((. / 86400) % 7) * 86400) / 60
 
-.model.created_at | strptime("%Y-%m-%dT%H:%M:%SZ") | .[6] = (. - mktime) / 86400 % 7 | mktime | . / 60
-
-.fullTicket.ticket.created_at | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime | . + (4*3600)
