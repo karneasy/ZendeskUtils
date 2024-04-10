@@ -1,1 +1,1 @@
-".fullTicket.ticket.created_at | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime | . + (4*3600) | . - (. % 86400) - (((. / 86400) % 7) * 86400) | . / 60"
+".fullTicket.ticket.created_at | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime | . + (4*3600) | ((. / 86400) - (floor((. / 86400) / 7) * 7)) * 1440 + ((. % 86400) / 60)"
