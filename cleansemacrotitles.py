@@ -12,9 +12,11 @@ def filter_and_correct_titles(csv_file_path):
     with open(csv_file_path, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            corrected_title = correct_title(row['title'])
-            if corrected_title != row['title']:  # Check if correction was necessary
+            original_title = row['title']
+            corrected_title = correct_title(original_title)
+            if corrected_title != original_title:  # Check if correction was necessary
                 updates_needed.append({'id': row['id'], 'title': corrected_title})
+                print(f"Title correction needed: '{original_title}' corrected to '{corrected_title}'")
     return updates_needed
 
 def correct_title(title):
@@ -32,6 +34,7 @@ def update_macros_in_batches(updates_needed, batch_size=100):
                 for macro in batch_updates
             ]
         }
+        print(f"Sending the following payload for update: {payload}")  # Print the body of the request
         response = requests.put(update_url_base, json=payload, headers=headers, auth=auth)
         if response.status_code == 200:
             print(f"Successfully updated batch of macros starting with ID {batch_updates[0]['id']}.")
@@ -40,4 +43,7 @@ def update_macros_in_batches(updates_needed, batch_size=100):
 
 if __name__ == "__main__":
     updates_needed = filter_and_correct_titles(csv_file_path)
-    update_macros_in_batches(updates_needed)
+    if updates_needed:
+        update_macros_in_batches(updates_needed)
+    else:
+        print("No titles require correction.")
