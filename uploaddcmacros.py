@@ -21,31 +21,27 @@ def load_csv_and_group_by_title(csv_file_path):
 def create_macros(grouped_data):
     """Create macros for each macro_title with the collected placeholders."""
     for macro_title, rows in grouped_data.items():
-        if len(rows) < 2:
-            print(f"Skipping {macro_title} due to insufficient data. ")
+        # Check to ensure there are sufficient rows to process
+        if len(rows) < 1:
+            print(f"Skipping {macro_title} due to insufficient data.")
             continue
 
-        # Assuming the first row is the title and the second is the message
-        title_placeholder = rows[0]['macro_title']
-        message_placeholder = rows[2]['dc_placeholder']
+        # Use the dc_title and dc_placeholder from the second row (or first, if only one row)
+        action_row = rows[0]  # assuming there's at least one row to process
+        dc_title = action_row['dc_title']
+        dc_placeholder = action_row['dc_placeholder']
 
         macro_data = {
             "macro": {
                 "actions": [
-                    {"field": "custom_status_id", "value": "16538172210578"},
-                    {"field": "custom_fields_16415321817106","value": "true"},
-                    {"field": "side_conversation", "value": [
-                        f'{title_placeholder}',
-                        f'{message_placeholder}',
-                        "",
-                        "text/html"
-                    ]}
+                    {"field": "subject", "value": dc_title},
+                    {"field": "comment_value_html", "value": dc_placeholder}
                 ],
                 "title": macro_title
             }
         }
 
-        print('body to send: ', macro_data)
+        print('Request body to send: ', macro_data)
         print('-----')
 
         response = requests.post(url, json=macro_data, headers=headers, auth=auth)
