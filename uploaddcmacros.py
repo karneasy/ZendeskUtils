@@ -22,20 +22,21 @@ def create_macros(grouped_data):
     """Create macros for each macro_title with the collected placeholders."""
     for macro_title, rows in grouped_data.items():
         if len(rows) < 2:
-            print(f"Skipping {macro_title} due to insufficient data.")
+            print(f"Skipping {macro_title} due to insufficient data. ")
             continue
 
         # Assuming the first row is the title and the second is the message
-        title_placeholder = rows[0]['dc_placeholder']
-        message_placeholder = rows[1]['dc_placeholder']
+        title_placeholder = rows[0]['macro_title']
+        message_placeholder = rows[2]['dc_placeholder']
 
         macro_data = {
             "macro": {
                 "actions": [
-                    {"field": "status", "value": "solved"},
-                    {"field": "comment_value_html", "value": [
-                        title_placeholder,
-                        message_placeholder,
+                    {"field": "custom_status_id", "value": "16538172210578"},
+                    {"field": "custom_fields_16415321817106","value": "true"},
+                    {"field": "side_conversation", "value": [
+                        f'{title_placeholder}',
+                        f'{message_placeholder}',
                         "",
                         "text/html"
                     ]}
@@ -43,6 +44,9 @@ def create_macros(grouped_data):
                 "title": macro_title
             }
         }
+
+        print('body to send: ', macro_data)
+        print('-----')
 
         response = requests.post(url, json=macro_data, headers=headers, auth=auth)
         if response.status_code == 201:
