@@ -22,11 +22,18 @@ def save_json(data, filename):
 
 def create_zendesk_body(batch):
     """Create the JSON body for the Zendesk API request from the batch data."""
-    tickets = [{'ticket': {'requester': {'email': ticket['email']},
-                           'subject': ticket['subject'],
-                           'description': ticket['description'],
-                           'created_at': ticket['created date'],
-                           'tags': ticket['tags'].split()}} for ticket in batch]
+    tickets = []
+    for ticket in batch:
+        # Assuming 'priority' needs to be set manually or can be inferred from another column
+        ticket_data = {
+            "comment": {"body": ticket['description']},
+            "priority": "normal",  # Set a default priority, adjust as needed
+            "subject": ticket['subject']
+        }
+        # Optional: Set priority based on some condition or another column in the CSV
+        # if 'priority' in ticket:
+        #     ticket_data['priority'] = ticket['priority']
+        tickets.append(ticket_data)
     return {'tickets': tickets}
 
 def process_data_in_batches(data, batch_size):
