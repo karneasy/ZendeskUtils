@@ -13,15 +13,12 @@ def load_csv_data(file_path):
         reader = csv.DictReader(file)
         return list(reader)
 
-def save_batch_as_csv(batch, batch_index):
-    """Save each batch of data to a separate CSV file."""
-    batch_file_path = os.path.join(DATA_SAVE_PATH, f'batch_{batch_index + 1}.csv')
-    fieldnames = ['email', 'subject', 'description', 'created date', 'tags']
-    with open(batch_file_path, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(batch)
-    print(f"Saved batch {batch_index + 1} to '{batch_file_path}'.")
+def save_json(data, filename):
+    """Save data to a JSON file."""
+    file_path = os.path.join(DATA_SAVE_PATH, filename)
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=2)
+    print(f"Saved data to {file_path}")
 
 def create_zendesk_body(batch):
     """Create the JSON body for the Zendesk API request from the batch data."""
@@ -30,15 +27,16 @@ def create_zendesk_body(batch):
                            'description': ticket['description'],
                            'created_at': ticket['created date'],
                            'tags': ticket['tags'].split()}} for ticket in batch]
-    return json.dumps({'tickets': tickets}, indent=2)
+    return {'tickets': tickets}
 
 def process_data_in_batches(data, batch_size):
     """Process and save data in batches."""
     for i in range(0, len(data), batch_size):
         batch = data[i:i+batch_size]
-        save_batch_as_csv(batch, i // batch_size)
+        batch_index = i // batch_size + 1  # Compute batch index for naming
         zendesk_body = create_zendesk_body(batch)
-        print(f"Batch {i // batch_size + 1} Zendesk body: {zendesk_body}")
+        json_filename = f'sfdc_batch_{batch_index}.json'
+        save_json(zendesk_body, json_filename)
 
 if __name__ == "__main__":
     data = load_csv_data(CSV_FILE_PATH)
