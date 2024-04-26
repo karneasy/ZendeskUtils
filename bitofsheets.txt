@@ -1,1 +1,4 @@
 =ARRAYFORMULA(IF(ROW(A:A)=1, "Tag", IF(ISBLANK(A:A), "", VLOOKUP(A:A, 'ticket-fields-dependent-team (2)'!A:B, 2, FALSE))))
+
+
+=ARRAYFORMULA(IF(LEN(A2:A), IF(SUM(IFERROR(SEARCH("@SALTO", SPLIT(FLATTEN(A2:G&CHAR(9)), CHAR(9))), 0))>0, "Found", "Not Found"), ""))
