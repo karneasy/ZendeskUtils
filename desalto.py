@@ -11,17 +11,20 @@ def load_csv_data(file_path):
     """Read CSV data into a list of dictionaries."""
     with open(file_path, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
-        return [row for row in reader if "@SALTO" in row['action']]
+        return [row for row in reader if "@SALTO" in row['actions']]
 
-def parse_action(action):
-    """Parse the action field and return as a dictionary."""
-    # Assuming the action field is a JSON-like string; adjust parsing as needed
-    return json.loads(action)
+def parse_actions(actions):
+    """Parse the actions field and return as a dictionary."""
+    try:
+        # Convert the string in 'actions' to a JSON object
+        return json.loads(actions)
+    except json.JSONDecodeError:
+        return None  # Return None or some error handling if the JSON is invalid
 
 def create_macros_json(batches):
     """Create and save JSON files from batches of macro data."""
     for index, batch in enumerate(batches):
-        macros = [{'id': int(macro['id']), 'action': parse_action(macro['action'])} for macro in batch]
+        macros = [{'id': int(macro['id']), 'actions': parse_actions(macro['actions'])} for macro in batch if parse_actions(macro['actions'])]
         json_data = {'macros': macros}
         json_file_path = os.path.join(DATA_SAVE_PATH, f'macros_batch_{index + 1}.json')
         with open(json_file_path, 'w', encoding='utf-8') as file:
