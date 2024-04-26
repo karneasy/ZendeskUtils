@@ -13,18 +13,19 @@ def load_csv_data(file_path):
         reader = csv.DictReader(file)
         return [row for row in reader if "@SALTO" in row['actions']]
 
-def parse_actions(actions):
-    """Parse the actions field and return as a dictionary."""
+def remove_salto(actions):
+    """Remove '@SALTO' from the actions field and return as a dictionary."""
+    cleaned_actions = actions.replace('@SALTO', '').strip()  # Remove '@SALTO' and trim whitespace
     try:
-        # Convert the string in 'actions' to a JSON object
-        return json.loads(actions)
+        # Convert the cleaned string in 'actions' to a JSON object
+        return json.loads(cleaned_actions)
     except json.JSONDecodeError:
         return None  # Return None or some error handling if the JSON is invalid
 
 def create_macros_json(batches):
     """Create and save JSON files from batches of macro data."""
     for index, batch in enumerate(batches):
-        macros = [{'id': int(macro['id']), 'actions': parse_actions(macro['actions'])} for macro in batch if parse_actions(macro['actions'])]
+        macros = [{'id': int(macro['id']), 'actions': remove_salto(macro['actions'])} for macro in batch if remove_salto(macro['actions'])]
         json_data = {'macros': macros}
         json_file_path = os.path.join(DATA_SAVE_PATH, f'macros_batch_{index + 1}.json')
         with open(json_file_path, 'w', encoding='utf-8') as file:
