@@ -6,10 +6,10 @@ def append_prod_id_to_sbox(prod_file, sbox_file, output_file):
     prod_df = pd.read_csv(prod_file)
     sbox_df = pd.read_csv(sbox_file)
 
-    # Merge DataFrames on 'name' to align rows for comparison
-    merged_df = pd.merge(sbox_df, prod_df[['id', 'name']], on='name', suffixes=('_sbox', '_prod'))
+    # Merge DataFrames on 'name', keeping only columns relevant for the merge and output
+    merged_df = pd.merge(sbox_df, prod_df[['id', 'name']], on='name', suffixes=('', '_prod'))
 
-    # Rename columns for clarity
+    # Rename the 'id' column from 'prod.csv' to 'prod_id' for clarity
     merged_df.rename(columns={'id_prod': 'prod_id'}, inplace=True)
 
     # Select columns from sbox_df and append 'prod_id'
