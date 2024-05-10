@@ -1,4 +1,5 @@
 import pandas as pd
+from settings import DATA_FETCH_PATH, DATA_SAVE_PATH
 
 def compare_and_extract(prod_file, sbox_file, output_file):
     # Load the CSV files
@@ -26,5 +27,10 @@ def compare_and_extract(prod_file, sbox_file, output_file):
     result_df.drop_duplicates(inplace=True)
     result_df.to_csv(output_file, index=False)
 
+# Construct file paths from settings
+prod_path = f"{DATA_FETCH_PATH}/prod.csv"
+sbox_path = f"{DATA_FETCH_PATH}/sbox.csv"
+output_path = f"{DATA_SAVE_PATH}/differences.csv"
+
 # Call the function with your filenames
-compare_and_extract('prod.csv', 'sbox.csv', 'differences.csv')
+compare_and_extract(prod_path, sbox_path, output_path)
