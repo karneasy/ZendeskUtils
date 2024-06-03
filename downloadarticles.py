@@ -11,6 +11,13 @@ for json_file in json_files:
         data = json.load(file)
         combined_data.extend(data['articles'])
 
+# Save combined data to a new JSON file
+combined_json_file_path = 'combined_articles.json'
+with open(combined_json_file_path, 'w', encoding='utf-8') as file:
+    json.dump({'articles': combined_data}, file, indent=4)
+
+print(f"Combined JSON saved successfully to {combined_json_file_path}")
+
 # Define the CSV file path
 csv_file_path = 'combined_articles.csv'
 
