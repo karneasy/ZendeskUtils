@@ -1,9 +1,1 @@
-{% for comment in ticket.public_comments offset:0 limit:1 %}
-{% assign sanitized_comment = comment.value | replace: '\r\n', ' ' | replace: '\n', ' ' | replace: '\r', ' ' %}
-{% if sanitized_comment.size < 25 %}
-{
-  "status": "solved",
-  "additional_tags": ["thankyou"]
-}
-{% endif %}
-{% endfor %}
+{% assign ticket_data = '' %}{% for comment in ticket.public_comments offset:0 limit:1 %}{% if comment.value.size < 25 %}{% capture ticket_json %}{"id":{{ ticket.id }},"status":"solved","additional_tags":["thankyou"]}{% endcapture %}{% assign ticket_data = ticket_json %}{% endif %}{% endfor %}{% if ticket_data != '' %}{{ ticket_data | replace: '\', '' }}{% endif %}
