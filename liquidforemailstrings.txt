@@ -1,0 +1,18 @@
+{
+  "ticket": {
+    "collaborators": [
+      {% assign emails = ticket.requester.custom_fields.12345678 %}
+      {% assign email_array = emails | split: ',' %}
+      {% assign formatted_emails = "" %}
+
+      {% for email in email_array %}
+        {% assign formatted_emails = formatted_emails | append: '"' | append: email | append: '"' %}
+        {% if forloop.last == false %}
+          {% assign formatted_emails = formatted_emails | append: ',' %}
+        {% endif %}
+      {% endfor %}
+      
+      {{ formatted_emails | replace: '"', '' }}
+    ]
+  }
+}
