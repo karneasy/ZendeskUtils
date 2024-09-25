@@ -1,0 +1,918 @@
+{
+  "name": "Quality Complaint Monitor",
+  "description": "This flow looks for field values and creates problem/incident links when needed.",
+  "zis_template_version": "2019-10-14",
+  "resources": {
+    "action_get_webhook": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_webhook",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/custom_objects/field_mapping/records?query=custom_object_key=item_mapping",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "external_api.post_message": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "external_api.post_message",
+        "definition": {
+          "method": "POST",
+          "url.$": "https://en8uoow5evi7h.x.pipedream.net/",
+          "requestBody": {
+            "text.$": "$.message"
+          }
+        }
+      }
+    },
+    "action_get_lookup": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_lookup",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/custom_objects/zis_notifications/records",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_search_open_tickets_for_problem": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_search_open_tickets_for_problem",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/search?query=type:ticket%20status:new%20status:open%20status:pending%20status:hold%20custom_field_{{$.qualityId}}:{{$.quality}}%20custom_field_{{$.batchId}}:{{$.batch}}%20ticket_type:problem&sort_by=created_at",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_search_open_tickets_for_incident": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_search_open_tickets_for_incident",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/search?query=type:ticket%20status:new%20status:open%20status:pending%20status:hold%20custom_field_{{$.qualityId}}:{{$.quality}}%20custom_field_{{$.batchId}}:{{$.batch}}%20-ticket_type:problem-{{$.ticketId}}&sort_by=created_at",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_get_ticket": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_ticket",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/tickets/{{$.ticketId}}",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_get_by_plant": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_by_plant",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/custom_objects/plant/records/{{$.plant}}",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_get_by_batch": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_by_batch",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/custom_objects/batch/records/{{$.batch}}",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_get_by_upc": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_get_by_upc",
+        "definition": {
+          "method": "GET",
+          "path.$": "/api/v2/custom_objects/item/records/{{$.upc}}",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{$.accessToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    "action_update_single": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_update_single",
+        "definition": {
+          "connectionName": "zendesk",
+          "method": "PUT",
+          "path.$": "/api/v2/tickets/{{$.ticketId}}.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "requestBody": {
+            "ticket": {
+              "type": "incident",
+              "problem_id": "{{$.problemId}}",
+              "comment": {
+                "body": "$.comment",
+                "public": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "action_update_ticket": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_update_ticket",
+        "definition": {
+          "connectionName": "zendesk",
+          "method": "PUT",
+          "path.$": "/api/v2/tickets/{{$.ticketId}}.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "requestBody": {
+            "ticket": {
+              "type": "incident",
+              "problem_id": "{{$.problemId}}",
+              "comment": {
+                "body": "$.comment",
+                "public": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "action_create_problem": {
+      "type": "ZIS::Action::Http",
+      "properties": {
+        "name": "action_create_problem",
+        "definition": {
+          "connectionName": "zendesk",
+          "method": "POST",
+          "path.$": "/api/v2/tickets/",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "requestBody": {
+            "ticket": {
+              "subject": "$.subject",
+              "followers": "$.copies",
+              "type": "problem",
+              "requester_id": "$.plantman",
+              "comment": {
+                "body": "$.comment",
+                "public": false
+              },
+              "custom_fields": "$.cf",
+              "tags": [
+                "priority_alert"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "flow_priority_incident_manager": {
+      "type": "ZIS::Flow",
+      "properties": {
+        "name": "quality_complaint_monitor",
+        "definition": {
+          "StartAt": "LoadConfig",
+          "States": {
+            "LoadConfig": {
+              "Type": "Action",
+              "ActionName": "zis:common:action:LoadConfig",
+              "Parameters": {
+                "scope": "quality-monitor"
+              },
+              "ResultPath": "$.model.config",
+              "Next": "ExtractCustomFieldEvent"
+            },
+            "ExtractCustomFieldEvent": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Comment": "This prevents the flow from overrunning when we create a ticket. The ZIS flow was interpreting my enrichment as a field change so I added this step to stop that.",
+              "Parameters": {
+                "expr": ".ticket_event.custom_field.id",
+                "data.$": "$.input"
+              },
+              "ResultPath": "$.model.fieldchanged",
+              "Next": "CheckFieldChange"
+            },
+            "CheckFieldChange": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.fieldchanged",
+                  "NumericEqualsPath": "$.model.config.fieldid1",
+                  "Next": "ExtractTags"
+                }
+              ],
+              "Default": "WrongFieldChanged"
+            },
+            "ExtractTags": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Comment": "This prevents the flow from overrunning when we create a ticket. The ZIS flow was interpreting my enrichment as a field change so I added this step to stop that.",
+              "Parameters": {
+                "expr": ".ticket_event.ticket.tags",
+                "data.$": "$.input"
+              },
+              "ResultPath": "$.model.tags",
+              "Next": "PriorityTags"
+            },
+            "PriorityTags": {
+              "Type": "Action",
+              "Comment": "Look for the tags of already enriched tickets",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".tags | any(. == \"priority_alert\")",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.enriched",
+              "Next": "CheckTags"
+            },
+            "CheckTags": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.enriched",
+                  "IsPresent": true,
+                  "Next": "GetFullTicket"
+                }
+              ],
+              "Default": "PriorityAlert"
+            },
+            "GetFullTicket": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_get_ticket",
+              "Parameters": {
+                "ticketId.$": "{{$.input.ticket_event.ticket.id}}",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.newTicket",
+              "Next": "ExtractCustomFieldNames"
+            },
+            "ExtractCustomFieldNames": {
+              "Type": "Action",
+              "Comment": "a jq to pull my config field names and values into a group to marry them up with the ticket values",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".config as $config | [range(1;9) | {id: ($config[\"fieldid\" + (tostring)] | tostring), name: $config[\"fieldname\" + (tostring)]}]",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.CFValues",
+              "Next": "ExtractCustomFieldValues"
+            },
+            "ExtractCustomFieldValues": {
+              "Type": "Action",
+              "Comment": "This step gets the custom field values from the new ticket.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": "{ cfValues: .CFValues | map({(.id): .name}) | add, customFields: .newTicket.ticket.custom_fields | map({(.id | tostring): .value}) | add } | .cfValues as $names | .customFields | to_entries | map(select($names[.key | tostring] != null) | {name: $names[.key | tostring], value: .value})",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.CFValues",
+              "Next": "CombineCFData"
+            },
+            "CombineCFData": {
+              "Type": "Action",
+              "Comment": "I declare all my field names as variables (It didn't like it without, I will try to improve it. Then I check the values from the config against fields, so I can get them all in one call.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".CFValues | map({(.name): .value}) | add",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.CFValues",
+              "Next": "CheckPriorityList"
+            },
+            "CheckPriorityList": {
+              "Type": "Action",
+              "Comment": "Marking if the incident is one of the priority types.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".CFValues.internalsubject as $subject | .config.priority_alert_list | any(.[]; . == $subject)",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.IsPriority",
+              "Next": "CheckStatus"
+            },
+            "CheckStatus": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Or": [
+                    {
+                      "Variable": "$.model.newTicket.ticket.status",
+                      "StringEquals": "open"
+                    },
+                    {
+                      "Variable": "$.model.newTicket.ticket.status",
+                      "StringEquals": "pending"
+                    },
+                    {
+                      "Variable": "$.model.newTicket.ticket.status",
+                      "StringEquals": "hold"
+                    }
+                  ],
+                  "Next": "PriorityStatus"
+                }
+              ],
+              "Default": "WrongStatus"
+            },
+            "PriorityStatus": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.IsPriority",
+                  "BooleanEquals": true,
+                  "Next": "GetNotificationMessages"
+                }
+              ],
+              "Default": "CheckForQuality"
+            },
+            "CheckForQuality": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.CFValues.internalsubject",
+                  "StringEquals": "quality",
+                  "Next": "GetNotificationMessages"
+                }
+              ],
+              "Default": "NoAlertNeeded"
+            },
+            "GetNotificationMessages": {
+              "Type": "Action",
+              "Comment": "Getting the customisable messages from the object I created for notifications, name may vary on prod",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_get_lookup",
+              "Parameters": {
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.lookup",
+              "Next": "PassNotificationsToEntries"
+            },
+            "PassNotificationsToEntries": {
+              "Type": "Action",
+              "Comment": "This action takes each of the notifications I set up, sends them to entries where the name is the name, and the value is the text in the object.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": " ( .lookup.custom_object_records | map({(.name): .custom_object_fields}) | add ) ",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.notifications",
+              "Next": "GetBatch"
+            },
+            "GetBatch": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_get_by_batch",
+              "Parameters": {
+                "batch.$": "{{$.model.CFValues.batchlookup}}",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.batchresults",
+              "Next": "CheckPlant"
+            },
+            "CheckPlant": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.CFValues.plantlookup",
+                  "IsPresent": false,
+                  "Next": "GetPlantFromBatch"
+                }
+              ],
+              "Default": "GetBatchName"
+            },
+            "GetPlantFromBatch": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".batchresults | .custom_object_record.custom_object_fields | .plant",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.CFValues.plantlookup",
+              "Next": "GetBatchName"
+            },
+            "GetBatchName": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".batchresults.custom_object_record.name",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.Batch",
+              "Next": "GetUPC"
+            },
+            "GetUPC": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_get_by_upc",
+              "Parameters": {
+                "upc.$": "{{$.model.CFValues.upclookup}}",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.UPCraw",
+              "Next": "GetPlant"
+            },
+            "GetPlant": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_get_by_plant",
+              "Parameters": {
+                "plant.$": "{{$.model.CFValues.plantlookup}}",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.plant",
+              "Next": "GetPlantUsers"
+            },
+            "GetPlantUsers": {
+              "Type": "Action",
+              "Comment": "On this one, we get the plant users, convert it into keys and search for the plant managers and QA. Then when we get any matches we put them in an array with userid: as the key, which allows us to insert them into the follower/ccs on the ticket.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".plant | .custom_object_record | .custom_object_fields  | with_entries(select(.key | test(\"^plant_(manager|qa)_\\\\d+$\"))) | [to_entries[] | {user_id: .value} ]",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.plantrecipients",
+              "Next": "GetQAManager"
+            },
+            "GetQAManager": {
+              "Type": "Action",
+              "Comment": "IF QA Manager 1 isn't there, we go to 2, then to 3. This is then used for the ticket recipient.",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".plant.custom_object_record.custom_object_fields | .plant_qa_1 // .plant_qa_2 // .plant_qa_3",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.plantmanager",
+              "Next": "PriorityStatusAgain"
+            },
+            "PriorityStatusAgain": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.IsPriority",
+                  "BooleanEquals": true,
+                  "Next": "ProblemCustomFields"
+                }
+              ],
+              "Default": "SearchOpenTicketsProblem"
+            },
+            "SearchOpenTicketsProblem": {
+              "Type": "Action",
+              "Comment": "Searching for open tickets with the same problem type",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_search_open_tickets_for_problem",
+              "Parameters": {
+                "qualityId.$": "$.model.config.fieldid3",
+                "quality.$": "$.model.CFValues.qualitysubcat",
+                "issuetypeId.$": "$.model.config.fieldid1",
+                "issue.$": "$.model.CFValues.internalsubject",
+                "batchId.$": "$.model.config.fieldid2",
+                "batch.$": "$.model.CFValues.batchlookup",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.openProblems",
+              "Next": "HandleProblems"
+            },
+            "HandleProblems": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.openProblems.count",
+                  "NumericGreaterThan": 1,
+                  "Next": "TooManyProblems"
+                },
+                {
+                  "Variable": "$.model.openProblems.count",
+                  "NumericEquals": 0,
+                  "Next": "SearchOpenTicketsIncident"
+                }
+              ],
+              "Default": "GetProblemId"
+            },
+            "GetProblemId": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".openProblems | .results[0].id ",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.problemId",
+              "Next": "UpdateTicketWithParent"
+            },
+            "UpdateTicketWithParent": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_update_ticket",
+              "Parameters": {
+                "ticketId.$": "$.model.newTicket.ticket.id",
+                "problemId.$": "$.model.problemId",
+                "comment.$": "A problem ticket, ID {{$.model.problemId}} has already been created to handle this issue. This ticket has been linked.",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "Next": "LinkedToProblem"
+            },
+            "SearchOpenTicketsIncident": {
+              "Type": "Action",
+              "Comment": "Searching to see if there are other instances of this ticket (i.e. is there a problem we havent identified?)",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_search_open_tickets_for_incident",
+              "Parameters": {
+                "ticketId.$": "{{$.input.ticket_event.ticket.id}}",
+                "qualityId.$": "$.model.config.fieldid3",
+                "quality.$": "$.model.CFValues.qualitysubcat",
+                "issuetypeId.$": "$.model.config.fieldid1",
+                "issue.$": "$.model.CFValues.internalsubject",
+                "batchId.$": "$.model.config.fieldid2",
+                "batch.$": "$.model.CFValues.batchlookup",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.openIncidents",
+              "Next": "HandleIncidents"
+            },
+            "HandleIncidents": {
+              "Type": "Choice",
+              "Comment": "Using >2 here because I omit the original id from my search above",
+              "Choices": [
+                {
+                  "Variable": "$.model.openIncidents.count",
+                  "NumericGreaterThan": 2,
+                  "Next": "ProblemCustomFields"
+                },
+                {
+                  "Variable": "$.model.openIncidents.count",
+                  "NumericEquals": 0,
+                  "Next": "NoIncidents"
+                }
+              ],
+              "Default": "NoIncidents"
+            },
+            "ProblemCustomFields": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Comment": "Format the custom fields",
+              "Parameters": {
+                "expr": "[.config.fieldid1 as $fid1 | {id: $fid1, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid1).value)}, .config.fieldid2 as $fid2 | {id: $fid2, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid2).value)}, .config.fieldid3 as $fid3 | {id: $fid3, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid3).value)}, .config.fieldid4 as $fid4 | {id: $fid4, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid4).value)}, .config.fieldid5 as $fid5 | {id: $fid5, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid5).value)}, .config.fieldid6 as $fid6 | {id: $fid6, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid6).value)}, .config.fieldid7 as $fid7 | {id: $fid7, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid7).value)}, .config.fieldid8 as $fid8 | {id: $fid8, value: (.newTicket.ticket.custom_fields[] | select(.id == $fid8).value)}]",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.customfields",
+              "Next": "CreateNewProblem"
+            },
+            "CreateNewProblem": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_create_problem",
+              "Parameters": {
+                "plantman.$": "$.model.plantmanager",
+                "subject.$": "$.model.notifications.newproblemtitle.multi_line_body",
+                "copies.$": "$.model.plantrecipients",
+                "cf.$": "$.model.customfields",
+                "comment.$": "$.model.notifications.newproblem.multi_line_body"
+              },
+              "ResultPath": "$.model.newProblem",
+              "Next": "GetNewProblem"
+            },
+            "GetNewProblem": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".newProblem | .audit.ticket_id ",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.problemId",
+              "Next": "HandleLinks"
+            },
+            "HandleLinks": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.model.IsPriority",
+                  "BooleanEquals": true,
+                  "Next": "UpdateSingleIncident"
+                }
+              ],
+              "Default": "InsertBodyAndProblemId"
+            },
+            "InsertBodyAndProblemId": {
+              "Type": "Action",
+              "ActionName": "zis:common:transform:Jq",
+              "Parameters": {
+                "expr": ".notifications.linktoproblem.multi_line_body as $body | .newProblem.audit.ticket_id as $prob | .openIncidents.results | map(. + {problem_id: $prob}) | map(. + {ticketdescription: $body})",
+                "data.$": "$.model"
+              },
+              "ResultPath": "$.model.openIncidents.results",
+              "Next": "CreateAllIncidentLinks"
+            },
+            "CreateAllIncidentLinks": {
+              "Type": "Map",
+              "ItemsPath": "$.model.openIncidents.results",
+              "Iterator": {
+                "StartAt": "Extract",
+                "States": {
+                  "Extract": {
+                    "Type": "Action",
+                    "ActionName": "zis:%INTEGRATION_NAME%:action:action_update_ticket",
+                    "Parameters": {
+                      "ticketId.$": "$.id",
+                      "problemId.$": "$.problem_id",
+                      "comment.$": "$.ticketdescription"
+                    },
+                    "End": true
+                  }
+                }
+              },
+              "ResultPath": "$.model.IncidentLink",
+              "Next": "IncidentsLinkedToProblem"
+            },
+            "UpdateSingleIncident": {
+              "Type": "Action",
+              "ActionName": "zis:%INTEGRATION_NAME%:action:action_update_ticket",
+              "Parameters": {
+                "ticketId.$": "{{$.input.ticket_event.ticket.id}}",
+                "problemId.$": "{{$.model.newProblem.audit.ticket_id}}",
+                "comment.$": "{{$.model.notifications.linktoproblem.multi_line_body}}",
+                "accessToken.$": "$.connections.zendesk.access_token"
+              },
+              "ResultPath": "$.model.updatedProblem",
+              "Next": "ProblemTicketupdated"
+            },
+            "WrongStatus": {
+              "Type": "Succeed",
+              "Message": "Ticket {{$.input.ticket_event.ticket.id}} is not open/hold/pending"
+            },
+            "NoAlertNeeded": {
+              "Type": "Succeed",
+              "Message": "Internal subject {{$.model.CFValues.internalsubject}} is not a priority alert or a quality issue."
+            },
+            "NoPlant": {
+              "Type": "Fail",
+              "Error": "No results with plant provided",
+              "Cause": "No matches for provided UPC on {{$.input.ticket_event.ticket.id}}."
+            },
+            "NoProblem": {
+              "Type": "Fail",
+              "Error": "No Problems placeholder",
+              "Cause": "This is a catch until I do the create problem steps"
+            },
+            "TooManyProblems": {
+              "Type": "Fail",
+              "Error": "Too many problems",
+              "Cause": "Multiple problems exist, so we cannot determine which one to link to."
+            },
+            "NoOtherIncidents": {
+              "Type": "Fail",
+              "Error": "No other incidents exist",
+              "Cause": "Doesn't look like it's a widespread problem yet"
+            },
+            "LinkedToProblem": {
+              "Type": "Succeed",
+              "Message": "Ticket {{$.input.ticket_event.ticket.id}} linked to {{$.model.problemId}}"
+            },
+            "IncidentsLinkedToProblem": {
+              "Type": "Succeed",
+              "Message": "Tickets linked to problem {{$.model.IncidentLink}}"
+            },
+            "ProblemTicketupdated": {
+              "Type": "Succeed",
+              "Message": "Tickets linked to problem {{$.model.updatedProblem.ticket.id}}"
+            },
+            "NoIncidents": {
+              "Type": "Succeed",
+              "Message": "No other instances of this alert type for this produce."
+            },
+            "PriorityAlert": {
+              "Type": "Succeed",
+              "Message": "This is an enriched ticket, no further action needed. Tags: {{$.model.tags}}"
+            },
+            "WrongFieldChanged": {
+              "Type": "Succeed",
+              "Message": "The field changed is not {{$.model.config.fieldname1}} so no action is needed."
+            },
+            "Dev": {
+              "Type": "Succeed",
+              "Message": "DevStep {{$.model.fieldschanged}}"
+            }
+          }
+        }
+      }
+    },
+    "jobspec_handle_ticket_event": {
+      "type": "ZIS::JobSpec",
+      "properties": {
+        "name": "quality_complaint_monitor",
+        "event_source": "support",
+        "event_type": "ticket.CustomFieldChanged",
+        "flow_name": "zis:%INTEGRATION_NAME%:flow:quality_complaint_monitor"
+      }
+    }
+  },
+  "zis_config_scope": "quality-monitor",
+  "zis_config_fields": {
+    "fieldid1": {
+      "label": "Internal Subject",
+      "type": "number",
+      "defaultValue": "20338083498004"
+    },
+    "priority_alert_list": {
+      "label": "Priority Alert List",
+      "type": "text",
+      "isList": true,
+      "defaultValue": "food_safety"
+    },
+    "fieldid2": {
+      "label": "Batch ID Lookup",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "21117887090196"
+    },
+    "fieldid3": {
+      "label": "Quality Subs ID",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "20338044703252"
+    },
+    "fieldid4": {
+      "label": "Topic ID",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "20338036364948"
+    },
+    "fieldid5": {
+      "label": "UPC ID Lookup",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "21117855734676"
+    },
+    "fieldid6": {
+      "label": "Plant ID Lookup",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "21344133248148"
+    },
+    "fieldname1": {
+      "label": "fieldvaluename1",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "internalsubject"
+    },
+    "fieldname2": {
+      "label": "fieldvaluename2",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "batchlookup"
+    },
+    "fieldname3": {
+      "label": "fieldvaluename3",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "qualitysubcat"
+    },
+    "fieldname4": {
+      "label": "fieldvaluename4",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "cstopic"
+    },
+    "fieldname5": {
+      "label": "fieldvaluename5",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "upclookup"
+    },
+    "fieldname6": {
+      "label": "fieldvaluename6",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "plantlookup"
+    },
+    "fieldid7": {
+      "label": "foodsafetysub",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "20338053572116"
+    },
+    "fieldname7": {
+      "label": "fieldname7",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "foodsafetysubcat"
+    },
+    "fieldid8": {
+      "label": "foreignobjectsub",
+      "type": "number",
+      "isList": false,
+      "defaultValue": "20338069395476"
+    },
+    "fieldname8": {
+      "label": "fieldname8",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "foreignobjectsubcat"
+    },
+    "parenttag": {
+      "label": "foreignobjectsub",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "problem_ticket"
+    },
+    "childtag": {
+      "label": "fieldname8",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "incident_enriched"
+    },
+    "prioritytag": {
+      "label": "fieldname8",
+      "type": "text",
+      "isList": false,
+      "defaultValue": "priority_alert"
+    }
+  }
+}
