@@ -4,50 +4,44 @@ import json
 from requests.auth import HTTPBasicAuth
 from settings import ZENDESK_URL, ZENDESK_EMAIL, ZENDESK_TOKEN, ZENDESK_API_ENDPOINTS, DATA_SAVE_PATH
 
-def fetch_and_save_endpoint_data(endpoint_config):
+def fetch_and_save_endpoint_data(endpoint, endpoint_config):
     auth = HTTPBasicAuth(f'{ZENDESK_EMAIL}/token', ZENDESK_TOKEN)
     headers = {'Content-Type': 'application/json'}
-    response_name = endpoint_config["response_name"]
-    pagination = endpoint_config["pagination"]
-
+    url = f"https://{ZENDESK_URL}.zendesk.com/api/v2/macros/active{endpoint}"  # Use the key as part of the URL
     all_data = []
-    url = f"https://{ZENDESK_URL}.zendesk.com{endpoint}"
-    params = {}
-    
-    if pagination["type"] == "page_number":
-        params[pagination["size_param"]] = pagination["size"]
-        page = 1
 
     while True:
-        print(f"Querying URL: {url}")
-        response = requests.get(url, headers=headers, auth=auth, params=params)
+        response = requests.get(url, headers=headers, auth=auth, verify=False)
         if response.status_code != 200:
-            print(f"Failed to fetch data from {url}. Status code: {response.status_code}")
+            print(f"Failed to fetch data from {url}, status code: {response.status_code}")
             break
 
         data = response.json()
-        batch_data = data.get(response_name, [])
-        all_data.extend(batch_data)
+        all_data.append(data)
 
-        if pagination["type"] == "cursor":
-            if not data.get(pagination["meta_key"], {}).get(pagination["has_more"], False):
-                break
-            params[pagination["param_name"]] = data[pagination["meta_key"]][pagination["cursor_key"]]
-        elif pagination["type"] == "page_number":
-            if not batch_data:
-                break
-            page += 1
-            params[pagination["param_name"]] = page
+        # Check for the next page cursor
+        meta = data.get("meta", {})
+        if not meta.get("has_more", False):
+            print("Reached the last page.")
+            break
+
+        # Update the URL with the next cursor
+        after_cursor = meta.get("after_cursor")
+        if after_cursor:
+            url = f"https://{ZENDESK_URL}.zendesk.com/api/v2/macros/active{endpoint}&page[after]={after_cursor}"
         else:
-            break  # Unknown pagination type
+            print("No cursor found for the next page.")
+            break
 
-    output_path = os.path.join(DATA_SAVE_PATH, f"{response_name}.json")
+    # Save the complete JSON data to a file
+    output_path = os.path.join(DATA_SAVE_PATH, f"{endpoint_config['response_name']}.json")
     with open(output_path, 'w') as json_file:
-        json.dump(all_data, json_file)
-    print(f"Data saved to {output_path}")
+        json.dump(all_data, json_file, indent=4)
+    print(f"Complete JSON data saved to {output_path}")
 
 if not os.path.exists(DATA_SAVE_PATH):
     os.makedirs(DATA_SAVE_PATH)
 
+# Iterate over the endpoints and configurations
 for endpoint, config in ZENDESK_API_ENDPOINTS.items():
-    fetch_and_save_endpoint_data(config)
+    fetch_and_save_endpoint_data(endpoint, config)
